@@ -8,16 +8,16 @@ Package.describe({
 });
 
 Npm.depends({
-  'electron-packager': '7.4.0',
-  'electron-rebuild': '1.1.4',
+  'electron-packager': '13.1.1',
+  'electron-rebuild': '1.8.4',
   'meteor-build-client-only': '0.5.1',
-  'is-running': '1.0.5',
-  'lucy-dirsum': 'https://github.com/mixmaxhq/lucy-dirsum/archive/08299b483cd0f79d18cd0fa1c5081dcab67c5649.tar.gz',
+  'is-running': '2.1.0',
+  'lucy-dirsum': '0.1.1',
   'mkdirp': '0.5.1',
   'ncp': '2.0.0',
   'rimraf': '2.4.4',
   'semver': '5.1.0',
-  'url-join': '0.0.1',
+  'url-join': '4.0.0',
 });
 
 Package.onUse(function (api) {

@@ -1,61 +1,62 @@
-var electronPackager = Meteor.wrapAsync(Npm.require("electron-packager"));
-var electronRebuild = Npm.require('electron-rebuild');
-var meteorBuildClient = Meteor.wrapAsync(Npm.require('meteor-build-client-only'));
-var fs = Npm.require('fs');
-var mkdirp = Meteor.wrapAsync(Npm.require('mkdirp'));
-var path = Npm.require('path');
-var proc = Npm.require('child_process');
-var dirsum = Meteor.wrapAsync(Npm.require('lucy-dirsum'));
-var readFile = Meteor.wrapAsync(fs.readFile);
-var writeFile = Meteor.wrapAsync(fs.writeFile);
-var stat = Meteor.wrapAsync(fs.stat);
-var util = Npm.require('util');
-var rimraf = Meteor.wrapAsync(Npm.require('rimraf'));
-var ncp = Meteor.wrapAsync(Npm.require('ncp'));
+/* global Meteor, Npm */
+const electronPackager = Meteor.wrapAsync(Npm.require('electron-packager'));
+const electronRebuild = Npm.require('electron-rebuild');
+const meteorBuildClient = Meteor.wrapAsync(Npm.require('meteor-build-client-only'));
+const fs = Npm.require('fs');
+const mkdirp = Meteor.wrapAsync(Npm.require('mkdirp'));
+const path = Npm.require('path');
+const proc = Npm.require('child_process');
+const dirsum = Meteor.wrapAsync(Npm.require('lucy-dirsum'));
+const readFile = Meteor.wrapAsync(fs.readFile);
+const writeFile = Meteor.wrapAsync(fs.writeFile);
+const stat = Meteor.wrapAsync(fs.stat);
+const util = Npm.require('util');
+const rimraf = Meteor.wrapAsync(Npm.require('rimraf'));
+const ncp = Meteor.wrapAsync(Npm.require('ncp'));
 
-var exec = Meteor.wrapAsync(function(command, options, callback){
-  proc.exec(command, options, function(err, stdout, stderr){
-    callback(err, {stdout: stdout, stderr: stderr});
+const exec = Meteor.wrapAsync(function (command, options, callback) {
+  proc.exec(command, options, function (err, stdout, stderr) {
+    callback(err, { stdout, stderr });
   });
 });
 
-var exists = function(path) {
+const exists = function (path) {
   try {
     stat(path);
     return true;
-  } catch(e) {
+  } catch (e) {
     return false;
   }
 };
 
-var projectRoot = function(){
-  if (process.platform === "win32"){
-    return process.env.METEOR_SHELL_DIR.split(".meteor")[0];
+const projectRoot = function () {
+  if (process.platform === 'win32') {
+    return process.env.METEOR_SHELL_DIR.split('.meteor')[0];
   } else {
     return process.env.PWD;
   }
 };
 
-var ELECTRON_VERSION = '1.3.2';
-var PACKAGE_NAME = 'jarnoleconte_electron';
+const ELECTRON_VERSION = '4.1.0';
+const PACKAGE_NAME = 'jarnoleconte_electron';
 
-var electronSettings = Meteor.settings.electron || {};
+const electronSettings = Meteor.settings.electron || {};
 
-var IS_MAC = (process.platform === 'darwin');
+const IS_MAC = process.platform === 'darwin';
 
 /* Entry Point */
-createBinaries = function() {
-  var results = {};
-  var builds;
-  if (electronSettings.builds){
+createBinaries = function () {
+  const results = {};
+  let builds;
+  if (electronSettings.builds) {
     builds = electronSettings.builds;
   } else {
-    //just build for the current platform/architecture
-    if (process.platform === "darwin"){
-      builds = [{platform: process.platform, arch: process.arch}];
-    } else if (process.platform === "win32"){
-      //arch detection doesn't always work on windows, and ia32 works everywhere
-      builds = [{platform: process.platform, arch: "ia32"}];
+    // just build for the current platform/architecture
+    if (process.platform === 'darwin') {
+      builds = [{ platform: process.platform, arch: process.arch }];
+    } else if (process.platform === 'win32') {
+      // arch detection doesn't always work on windows, and ia32 works everywhere
+      builds = [{ platform: process.platform, arch: 'ia32' }];
     } else {
       console.error('You must specify one or more builds in Meteor.settings.electron.');
       return results;
@@ -67,17 +68,17 @@ createBinaries = function() {
     return results;
   }
 
-  builds.forEach(function(buildInfo){
-    var buildRequired = false;
+  builds.forEach(function (buildInfo) {
+    let buildRequired = false;
 
-    var buildDirs = createBuildDirectories(buildInfo);
+    const buildDirs = createBuildDirectories(buildInfo);
 
     /* Write out Electron application files */
-    var appVersion = electronSettings.version;
-    var appName = electronSettings.name || "electron";
-    var appDescription = electronSettings.description;
+    const appVersion = electronSettings.version;
+    const appName = electronSettings.name || 'electron';
+    const appDescription = electronSettings.description;
 
-    var resolvedAppSrcDir;
+    let resolvedAppSrcDir;
     if (electronSettings.appSrcDir) {
       resolvedAppSrcDir = path.join(projectRoot(), electronSettings.appSrcDir);
     } else {
@@ -89,8 +90,8 @@ createBinaries = function() {
 
     // Check if the package.json has changed before copying over the app files, to account for
     // changes made in the app source dir.
-    var packagePath = packageJSONPath(resolvedAppSrcDir);
-    var packageJSON = Npm.require(packagePath);
+    const packagePath = packageJSONPath(resolvedAppSrcDir);
+    let packageJSON = Npm.require(packagePath);
 
     // Fill in missing package.json fields (note: before the comparison).
     // This isn't just a convenience--`Squirrel.Windows` requires the description and version.
@@ -98,13 +99,13 @@ createBinaries = function() {
       name: appName && appName.toLowerCase().replace(/\s/g, '-'),
       productName: appName,
       description: appDescription,
-      version: appVersion
+      version: appVersion,
     });
     // Check if the package has changed before we possibly copy over the app source since that will
     // of course sync `package.json`.
-    var packageHasChanged = packageJSONHasChanged(packageJSON, buildDirs.app);
+    const packageHasChanged = packageJSONHasChanged(packageJSON, buildDirs.app);
 
-    var didOverwriteNodeModules = false;
+    let didOverwriteNodeModules = false;
 
     if (appHasChanged(resolvedAppSrcDir, buildDirs.checksum)) {
       buildRequired = true;
@@ -115,8 +116,9 @@ createBinaries = function() {
         // Except node_modules from pruning since we prune that below.
         // TODO(wearhere): `rsync` also uses checksums to only copy what's necessary so theoretically we
         // could always `rsync` rather than checking if the directory's changed first.
-         exec(util.format('rsync -a --delete --force --filter="P node_modules" "%s" "%s"',
-          path.join(resolvedAppSrcDir, '/'), buildDirs.app));
+        exec(
+          util.format('rsync -a --delete --force --filter="P node_modules" "%s" "%s"', path.join(resolvedAppSrcDir, '/'), buildDirs.app)
+        );
       } else {
         // TODO(wearhere): More efficient sync on Windows (where `rsync` isn't available.)
         rimraf(buildDirs.app);
@@ -139,7 +141,7 @@ createBinaries = function() {
       rimraf(packageJSONPath(buildDirs.app));
       writeFile(packageJSONPath(buildDirs.app), JSON.stringify(packageJSON));
 
-      exec("npm install && npm prune", {cwd: buildDirs.app});
+      exec('npm install && npm prune', { cwd: buildDirs.app });
 
       /*
         THERE IS A PROBLEM WITH BUILDING NATIVE MODULES, SKIP FOR NOW
@@ -154,15 +156,15 @@ createBinaries = function() {
     }
 
     /* Write out Electron Settings */
-    var settings = _.defaults({}, electronSettings, {
-      rootUrl: process.env.ROOT_URL
+    const settings = _.defaults({}, electronSettings, {
+      rootUrl: process.env.ROOT_URL,
     });
 
-    var signingIdentity = electronSettings.sign;
-    var signingIdentityRequiredAndMissing = false;
+    const signingIdentity = electronSettings.sign;
+    let signingIdentityRequiredAndMissing = false;
     if (canServeUpdates(buildInfo.platform)) {
       // Enable the auto-updater if possible.
-      if ((buildInfo.platform === 'darwin') && !signingIdentity) {
+      if (buildInfo.platform === 'darwin' && !signingIdentity) {
         // If the app isn't signed and we try to use the auto-updater, it will
         // throw an exception. Log an error if the settings have changed, below.
         signingIdentityRequiredAndMissing = true;
@@ -181,8 +183,7 @@ createBinaries = function() {
     }
 
     /* check for resource file changes */
-
-    var packagerSettings = getPackagerSettings(buildInfo, buildDirs);
+    const packagerSettings = getPackagerSettings(buildInfo, buildDirs);
 
     if (packagerSettings.icon && iconHasChanged(packagerSettings.icon, buildDirs.checksum)) {
       buildRequired = true;
@@ -191,8 +192,8 @@ createBinaries = function() {
     if (packagerSettings['extend-info'] && fileHasChanged('plist', packagerSettings['extend-info'], buildDirs.checksum)) {
       buildRequired = true;
     }
-    var sign = packagerSettings['osx-sign'];
-    if (sign['entitlements'] && fileHasChanged('sandboxParent', sign['entitlements'], buildDirs.checksum)) {
+    const sign = packagerSettings['osx-sign'];
+    if (sign.entitlements && fileHasChanged('sandboxParent', sign.entitlements, buildDirs.checksum)) {
       buildRequired = true;
     }
     if (sign['entitlements-inherit'] && fileHasChanged('sandboxChild', sign['entitlements-inherit'], buildDirs.checksum)) {
@@ -206,13 +207,13 @@ createBinaries = function() {
       buildRequired = true;
     }
 
-    var app = appPath(appName, buildInfo.platform, buildInfo.arch, buildDirs.build);
+    const app = appPath(appName, buildInfo.platform, buildInfo.arch, buildDirs.build);
     if (!exists(app)) {
       buildRequired = true;
     }
 
     if (electronSettings.autoPackage && electronSettings.bundleClient) {
-      console.error("Bundling meteor client to package offline app. This will take a while...");
+      console.error('Bundling meteor client to package offline app. This will take a while...');
       meteorBuildClient({
         input: projectRoot(),
         output: buildDirs.web,
@@ -225,11 +226,10 @@ createBinaries = function() {
       rimraf(buildDirs.web);
     }
 
-
     /* Create Build */
     if (buildRequired) {
-      var build = electronPackager(packagerSettings)[0];
-      console.log("Build created for ", buildInfo.platform, buildInfo.arch, "at", build);
+      const build = electronPackager(packagerSettings)[0];
+      console.log('Build created for ', buildInfo.platform, buildInfo.arch, 'at', build);
     }
 
     /* Package the build for download if specified. */
@@ -238,8 +238,8 @@ createBinaries = function() {
     if (electronSettings.autoPackage && _.contains(['darwin', 'mas'], buildInfo.platform)) {
       // The auto-updater framework only supports installing ZIP releases:
       // https://github.com/Squirrel/Squirrel.Mac#update-json-format
-      var downloadName = (appName || "app") + ".zip";
-      var compressedDownload = path.join(buildDirs.final, downloadName);
+      const downloadName = (appName || 'app') + '.zip';
+      const compressedDownload = path.join(buildDirs.final, downloadName);
 
       if (buildRequired || !exists(compressedDownload)) {
         // Use `ditto` to ZIP the app because I couldn't find a good npm module to do it and also that's
@@ -247,50 +247,50 @@ createBinaries = function() {
         // - https://github.com/Squirrel/Squirrel.Mac/blob/8caa2fa2007b29a253f7f5be8fc9f36ace6aa30e/Squirrel/SQRLZipArchiver.h#L24
         // - https://github.com/jenslind/electron-release/blob/4a2a701c18664ec668c3570c3907c0fee72f5e2a/index.js#L109
         exec('ditto -ck --sequesterRsrc --keepParent "' + app + '" "' + compressedDownload + '"');
-        console.log("Downloadable created at", compressedDownload);
+        console.log('Downloadable created at', compressedDownload);
       }
     }
 
-    results[buildInfo.platform + "-" + buildInfo.arch] = {
-      app: app,
-      buildRequired: buildRequired
+    results[buildInfo.platform + '-' + buildInfo.arch] = {
+      app,
+      buildRequired,
     };
   });
 
   return results;
 };
 
-function createBuildDirectories(build){
+function createBuildDirectories(build) {
   // Use a predictable directory so that other scripts can locate the builds, also so that the builds
   // may be cached:
 
-  var workingDir = path.join(projectRoot(), '.meteor-electron', build.platform + "-" + build.arch);
+  const workingDir = path.join(projectRoot(), '.meteor-electron', build.platform + '-' + build.arch);
   mkdirp(workingDir);
 
-  //TODO consider seeding the binaryDir from package assets so package
-  //could work without an internet connection
+  // TODO consider seeding the binaryDir from package assets so package
+  // could work without an internet connection
 
   // *binaryDir* holds the vanilla electron apps
-  var binaryDir = path.join(workingDir, "releases");
+  const binaryDir = path.join(workingDir, 'releases');
   mkdirp(binaryDir);
 
   // *checksumDir* holds checksums of resources
-  var checksumDir = path.join(workingDir, ".checksum");
+  const checksumDir = path.join(workingDir, '.checksum');
   mkdirp(checksumDir);
 
   // *appDir* holds the electron application that points to a meteor app
-  var appDir = path.join(workingDir, "apps");
+  const appDir = path.join(workingDir, 'apps');
   mkdirp(appDir);
 
   // *webDir* holds the meteor client code which could be packaged for offline use
-  var webDir = path.join(appDir, "web");
+  const webDir = path.join(appDir, 'web');
 
   // *buildDir* contains the uncompressed apps
-  var buildDir = path.join(workingDir, "builds");
+  const buildDir = path.join(workingDir, 'builds');
   mkdirp(buildDir);
 
   // *finalDir* contains zipped apps ready to be downloaded
-  var finalDir = path.join(workingDir, "final");
+  const finalDir = path.join(workingDir, 'final');
   mkdirp(finalDir);
 
   return {
@@ -300,14 +300,14 @@ function createBuildDirectories(build){
     app: appDir,
     web: webDir,
     build: buildDir,
-    final: finalDir
+    final: finalDir,
   };
 }
 
-function getPackagerSettings(buildInfo, dirs){
-  var packagerSettings = {
+function getPackagerSettings(buildInfo, dirs) {
+  const packagerSettings = {
     dir: dirs.app,
-    name: electronSettings.name || "Electron",
+    name: electronSettings.name || 'Electron',
     platform: buildInfo.platform,
     arch: buildInfo.arch,
     version: ELECTRON_VERSION,
@@ -321,8 +321,8 @@ function getPackagerSettings(buildInfo, dirs){
     // The EXE's `ProductName` is the preferred title of application shortcuts created by `Squirrel.Windows`.
     // If we don't set it, it will default to "Electron".
     'version-string': {
-      ProductName: electronSettings.name || 'Electron'
-    }
+      ProductName: electronSettings.name || 'Electron',
+    },
   };
 
   if (electronSettings.version) {
@@ -341,9 +341,9 @@ function getPackagerSettings(buildInfo, dirs){
     packagerSettings['extend-info'] = path.join(projectRoot(), electronSettings.extendPlist);
   }
   if (electronSettings.icon) {
-    var icon = electronSettings.icon[buildInfo.platform];
+    const icon = electronSettings.icon[buildInfo.platform];
     if (icon) {
-      var iconPath = path.join(projectRoot(), icon);
+      const iconPath = path.join(projectRoot(), icon);
       packagerSettings.icon = iconPath;
     }
   }
@@ -352,12 +352,10 @@ function getPackagerSettings(buildInfo, dirs){
   }
   if (electronSettings.sandbox) {
     if (electronSettings.sandbox.parent) {
-      packagerSettings['osx-sign']['entitlements'] =
-        path.join(projectRoot(), electronSettings.sandbox.parent);
+      packagerSettings['osx-sign'].entitlements = path.join(projectRoot(), electronSettings.sandbox.parent);
     }
     if (electronSettings.sandbox.child) {
-      packagerSettings['osx-sign']['entitlements-inherit'] =
-        path.join(projectRoot(), electronSettings.sandbox.child);
+      packagerSettings['osx-sign']['entitlements-inherit'] = path.join(projectRoot(), electronSettings.sandbox.child);
     }
   }
   if (electronSettings.protocols) {
@@ -371,26 +369,26 @@ function settingsPath(appDir) {
 }
 
 function settingsHaveChanged(settings, appDir) {
-  var electronSettingsPath = settingsPath(appDir);
-  var existingElectronSettings;
+  const electronSettingsPath = settingsPath(appDir);
+  let existingElectronSettings;
   try {
     existingElectronSettings = Npm.require(electronSettingsPath);
-  } catch(e) {
+  } catch (e) {
     // No existing settings.
   }
   return !existingElectronSettings || !_.isEqual(settings, existingElectronSettings);
 }
 
 function appHasChanged(appSrcDir, checksumDir) {
-  var appChecksumPath = path.join(checksumDir, 'app.checksum.txt');
-  var existingAppChecksum;
+  const appChecksumPath = path.join(checksumDir, 'app.checksum.txt');
+  let existingAppChecksum;
   try {
     existingAppChecksum = readFile(appChecksumPath, 'utf8');
-  } catch(e) {
+  } catch (e) {
     // No existing checksum.
   }
 
-  var appChecksum = dirsum(appSrcDir);
+  const appChecksum = dirsum(appSrcDir);
   if (appChecksum !== existingAppChecksum) {
     writeFile(appChecksumPath, appChecksum);
     return true;
@@ -404,11 +402,11 @@ function packageJSONPath(appDir) {
 }
 
 function packageJSONHasChanged(packageJSON, appDir) {
-  var packagePath = packageJSONPath(appDir);
-  var existingPackageJSON;
+  const packagePath = packageJSONPath(appDir);
+  let existingPackageJSON;
   try {
     existingPackageJSON = Npm.require(packagePath);
-  } catch(e) {
+  } catch (e) {
     // No existing package.
   }
 
@@ -416,11 +414,11 @@ function packageJSONHasChanged(packageJSON, appDir) {
 }
 
 function packagerSettingsHaveChanged(settings, workingDir) {
-  var settingsPath = path.join(workingDir, 'lastUsedPackagerSettings.json');
-  var existingPackagerSettings;
+  const settingsPath = path.join(workingDir, 'lastUsedPackagerSettings.json');
+  let existingPackagerSettings;
   try {
     existingPackagerSettings = Npm.require(settingsPath);
-  } catch(e) {
+  } catch (e) {
     // No existing settings.
   }
 
@@ -433,16 +431,16 @@ function packagerSettingsHaveChanged(settings, workingDir) {
 }
 
 function iconHasChanged(iconPath, checksumDir) {
-  var iconChecksumPath = path.join(checksumDir, 'icon.checksum.txt');
-  var existingIconChecksum;
+  const iconChecksumPath = path.join(checksumDir, 'icon.checksum.txt');
+  let existingIconChecksum;
   try {
     existingIconChecksum = readFile(iconChecksumPath, 'utf8');
-  } catch(e) {
+  } catch (e) {
     // No existing checksum.
   }
 
   // `dirsum` works for files too.
-  var iconChecksum = dirsum(iconPath);
+  const iconChecksum = dirsum(iconPath);
   if (iconChecksum !== existingIconChecksum) {
     writeFile(iconChecksumPath, iconChecksum);
     return true;
@@ -452,16 +450,16 @@ function iconHasChanged(iconPath, checksumDir) {
 }
 
 function fileHasChanged(resourceName, filePath, checksumDir) {
-  var fileChecksumPath = path.join(checksumDir, resourceName + '.checksum.txt');
-  var existingFileChecksum;
+  const fileChecksumPath = path.join(checksumDir, resourceName + '.checksum.txt');
+  let existingFileChecksum;
   try {
     existingFileChecksum = readFile(fileChecksumPath, 'utf8');
-  } catch(e) {
+  } catch (e) {
     // No existing checksum.
   }
 
   // `dirsum` works for files too.
-  var fileChecksum = dirsum(filePath);
+  const fileChecksum = dirsum(filePath);
   if (fileChecksum !== existingFileChecksum) {
     writeFile(fileChecksumPath, fileChecksum);
     return true;
@@ -471,6 +469,6 @@ function fileHasChanged(resourceName, filePath, checksumDir) {
 }
 
 function appPath(appName, platform, arch, buildDir) {
-  var appExtension = _.contains(['darwin', 'mas'], platform) ? '.app' : '.exe';
+  const appExtension = _.contains(['darwin', 'mas'], platform) ? '.app' : '.exe';
   return path.join(buildDir, [appName, platform, arch].join('-'), appName + appExtension);
 }
