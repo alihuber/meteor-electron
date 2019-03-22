@@ -14,13 +14,13 @@ const util = Npm.require('util');
 const rimraf = Meteor.wrapAsync(Npm.require('rimraf'));
 const ncp = Meteor.wrapAsync(Npm.require('ncp'));
 
-const exec = Meteor.wrapAsync(function (command, options, callback) {
-  proc.exec(command, options, function (err, stdout, stderr) {
+const exec = Meteor.wrapAsync(function(command, options, callback) {
+  proc.exec(command, options, function(err, stdout, stderr) {
     callback(err, { stdout, stderr });
   });
 });
 
-const exists = function (path) {
+const exists = function(path) {
   try {
     stat(path);
     return true;
@@ -29,7 +29,7 @@ const exists = function (path) {
   }
 };
 
-const projectRoot = function () {
+const projectRoot = function() {
   if (process.platform === 'win32') {
     return process.env.METEOR_SHELL_DIR.split('.meteor')[0];
   } else {
@@ -45,7 +45,7 @@ const electronSettings = Meteor.settings.electron || {};
 const IS_MAC = process.platform === 'darwin';
 
 /* Entry Point */
-createBinaries = function () {
+createBinaries = function() {
   const results = {};
   let builds;
   if (electronSettings.builds) {
@@ -68,7 +68,7 @@ createBinaries = function () {
     return results;
   }
 
-  builds.forEach(function (buildInfo) {
+  builds.forEach(function(buildInfo) {
     let buildRequired = false;
 
     const buildDirs = createBuildDirectories(buildInfo);
