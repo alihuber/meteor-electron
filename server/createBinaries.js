@@ -1,5 +1,4 @@
 /* global Meteor, Npm */
-const electronPackager = Meteor.wrapAsync(Npm.require('electron-packager'));
 const electronRebuild = Npm.require('electron-rebuild');
 const meteorBuildClient = Meteor.wrapAsync(Npm.require('meteor-build-client-only'));
 const fs = Npm.require('fs');
@@ -228,8 +227,33 @@ createBinaries = function() {
 
     /* Create Build */
     if (buildRequired) {
-      const build = electronPackager(packagerSettings)[0];
-      console.log('Build created for ', buildInfo.platform, buildInfo.arch, 'at', build);
+      const sourcedir = packagerSettings.dir;
+      const appname = packagerSettings.name;
+      const platform = packagerSettings.platform;
+      const arch = packagerSettings.arch;
+      const out = packagerSettings.out;
+      const overwrite = packagerSettings.overwrite ? '--overwrite' : '';
+      const downloadCache = packagerSettings.download.cache;
+      // const osxSign = packagerSettings['osx-sign'];
+      // const versionStringProductName = packagerSettings['version-string'];
+
+      // all options:
+      //  dir: '/Users/ali/test/meteor_offline2/.meteor-electron/darwin-x64/apps',
+      //  name: 'my-app-name',
+      //  platform: 'darwin',
+      //  arch: 'x64',
+      //  version: '4.1.0',
+      //  out: '/Users/ali/test/meteor_offline2/.meteor-electron/darwin-x64/builds',
+      //  download:
+      //   { cache: '/Users/ali/test/meteor_offline2/.meteor-electron/darwin-x64/releases' },
+      //  overwrite: true,
+      //  'osx-sign': {},
+      //  'version-string': { ProductName: 'my-app-name' },
+      //  'app-version': '4.1.0' }
+      exec(
+        `npx electron-packager ${sourcedir} ${appname} --platform=${platform} --arch=${arch} --out=${out} ${overwrite} --download.cache=${downloadCache}`
+      );
+      console.log('Build created for ', buildInfo.platform, buildInfo.arch, 'at', out);
     }
 
     /* Package the build for download if specified. */
