@@ -1,5 +1,5 @@
 /* global Npm, Meteor */
-import { serve } from './serve';
+import { serve, serveDir } from './serve';
 import { DOWNLOAD_URLS } from './downloadUrls';
 
 const semver = Npm.require('semver');
