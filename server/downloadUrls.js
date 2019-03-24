@@ -1,22 +1,30 @@
-var urlJoin = Npm.require('url-join');
+/* global Npm, Meteor */
+const urlJoin = Npm.require('url-join');
+const _ = require('underscore');
 
 // Global for tests.
-parseMacDownloadUrl = function(electronSettings) {
+const parseMacDownloadUrl = function (electronSettings) {
   if (!electronSettings || !electronSettings.downloadUrls || !electronSettings.downloadUrls.darwin) return;
 
   return electronSettings.downloadUrls.darwin.replace('{{version}}', electronSettings.version);
 };
 
+function cachebustedUrl(url) {
+  const querySeparator = url.indexOf('?') > -1 ? '&' : '?';
+  return url + querySeparator + 'cb=' + Date.now();
+}
+
 // Global for tests.
-parseWindowsDownloadUrls = function(electronSettings) {
+const parseWindowsDownloadUrls = function (electronSettings) {
   if (!electronSettings || !electronSettings.downloadUrls || !electronSettings.downloadUrls.win32) return;
 
   // The default value here is what `createBinaries` writes into the app's package.json, which is
   // what is read by `grunt-electron-installer` to name the installer.
-  var appName = electronSettings.name || 'electron';
+  const appName = electronSettings.name || 'electron';
 
-  var releasesUrl, installerUrl;
-  var installerUrlIsVersioned = false;
+  let releasesUrl;
+  let installerUrl;
+  let installerUrlIsVersioned = false;
 
   if (_.isString(electronSettings.downloadUrls.win32)) {
     if (electronSettings.downloadUrls.win32.indexOf('{{version}}') > -1) {
@@ -48,16 +56,11 @@ parseWindowsDownloadUrls = function(electronSettings) {
 
   return {
     releases: releasesUrl,
-    installer: installerUrl
+    installer: installerUrl,
   };
 };
 
-function cachebustedUrl(url) {
-  var querySeparator = (url.indexOf('?') > -1) ? '&' : '?';
-  return url + querySeparator + 'cb=' + Date.now();
-}
-
-DOWNLOAD_URLS = {
+export const DOWNLOAD_URLS = {
   darwin: parseMacDownloadUrl(Meteor.settings.electron),
-  win32: parseWindowsDownloadUrls(Meteor.settings.electron)
+  win32: parseWindowsDownloadUrls(Meteor.settings.electron),
 };

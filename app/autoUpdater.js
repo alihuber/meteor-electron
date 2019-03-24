@@ -1,21 +1,21 @@
-var _ = require('underscore');
-var { app, autoUpdater, dialog } = require('electron');
+const _ = require('underscore');
+const { app, autoUpdater, dialog } = require('electron');
 
 // Daily.
-var SCHEDULED_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
+const SCHEDULED_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
-var Updater = function() {
+const Updater = function () {
   autoUpdater.on('error', this._onUpdateError.bind(this));
   autoUpdater.on('update-not-available', this._onUpdateNotAvailable.bind(this));
   autoUpdater.on('update-downloaded', this._onUpdateDownloaded.bind(this));
 };
 
 _.extend(Updater.prototype, {
-  setFeedURL: function(url) {
+  setFeedURL(url) {
     autoUpdater.setFeedURL(url);
   },
 
-  checkForUpdates: function(userTriggered /* optional */) {
+  checkForUpdates(userTriggered /* optional */) {
     // Asking the updater to check while it's already checking may result in an error.
     if (this._checkPending) return;
 
@@ -31,7 +31,7 @@ _.extend(Updater.prototype, {
     autoUpdater.checkForUpdates();
   },
 
-  _onUpdateError: function() {
+  _onUpdateError() {
     this._checkPending = false;
     if (this._userCheckPending) {
       this._userCheckPending = false;
@@ -39,14 +39,14 @@ _.extend(Updater.prototype, {
       dialog.showMessageBox({
         type: 'error',
         message: 'An error occurred while checking for updates.',
-        buttons: ['Ok']
+        buttons: ['Ok'],
       });
     }
 
     this._scheduleCheck();
   },
 
-  _onUpdateNotAvailable: function() {
+  _onUpdateNotAvailable() {
     this._checkPending = false;
     if (this._userCheckPending) {
       this._userCheckPending = false;
@@ -54,63 +54,66 @@ _.extend(Updater.prototype, {
       dialog.showMessageBox({
         type: 'info',
         message: 'An update is not available.',
-        buttons: ['Ok']
+        buttons: ['Ok'],
       });
     }
 
     this._scheduleCheck();
   },
 
-  _onUpdateDownloaded: function() {
+  _onUpdateDownloaded() {
     this._checkPending = false;
     this._userCheckPending = false;
     this._updatePending = true;
     this._askToApplyUpdate();
   },
 
-  _askToApplyUpdate: function() {
-    var self = this;
+  _askToApplyUpdate() {
+    const self = this;
 
-    dialog.showMessageBox({
-      type: 'question',
-      message: 'An update is available! Would you like to quit to install it? The application will then restart.',
-      buttons: ['Ask me later', 'Quit and install']
-    }, function(result) {
-      if (result > 0) {
-        // Emit the 'before-quit' event since the app won't quit otherwise
-        // (https://app.asana.com/0/19141607276671/74169390751974) and the app won't:
-        // https://github.com/atom/electron/issues/3837
-        var event = {
-          _defaultPrevented: false,
-          isDefaultPrevented: function() {
-            return this._defaultPrevented;
-          },
-          preventDefault: function() {
-            this._defaultPrevented = true;
-          }
-        };
+    dialog.showMessageBox(
+      {
+        type: 'question',
+        message: 'An update is available! Would you like to quit to install it? The application will then restart.',
+        buttons: ['Ask me later', 'Quit and install'],
+      },
+      function (result) {
+        if (result > 0) {
+          // Emit the 'before-quit' event since the app won't quit otherwise
+          // (https://app.asana.com/0/19141607276671/74169390751974) and the app won't:
+          // https://github.com/atom/electron/issues/3837
+          const event = {
+            _defaultPrevented: false,
+            isDefaultPrevented() {
+              return this._defaultPrevented;
+            },
+            preventDefault() {
+              this._defaultPrevented = true;
+            },
+          };
 
-        app.emit('before-quit', event);
-        if (event.isDefaultPrevented()) return;
+          app.emit('before-quit', event);
+          if (event.isDefaultPrevented()) return;
 
-        autoUpdater.quitAndInstall();
-      } else {
-        self._scheduleCheck();
+          autoUpdater.quitAndInstall();
+        } else {
+          self._scheduleCheck();
+        }
       }
-    });
+    );
   },
 
-  _clearScheduledCheck: function() {
+  _clearScheduledCheck() {
     if (this._scheduledCheck) {
       clearTimeout(this._scheduledCheck);
       this._scheduledCheck = null;
     }
   },
 
-  _scheduleCheck: function() {
+  _scheduleCheck() {
     this._clearScheduledCheck();
     this._scheduledCheck = setTimeout(this.checkForUpdates.bind(this), SCHEDULED_CHECK_INTERVAL);
-  }
+  },
 });
 
 module.exports = new Updater();

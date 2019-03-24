@@ -1,4 +1,9 @@
 /* global Meteor */
+import createBinaries from './createBinaries';
+import { serveDownloadUrl } from './serveDownloadUrl';
+import { serveUpdateFeed } from './serveUpdateFeed';
+import { launchApp } from './launchApp';
+
 const electronSettings = Meteor.settings.electron || {};
 
 if (process.env.NODE_ENV === 'development' && electronSettings.autoBuild !== false) {
@@ -7,7 +12,7 @@ if (process.env.NODE_ENV === 'development' && electronSettings.autoBuild !== fal
 
   // if no build could be found, check if we build for mas
   if (!buildResultForThisPlatform && process.platform === 'darwin') {
-    buildResultForThisPlatform = buildResults['mas' + '-' + process.arch];
+    buildResultForThisPlatform = buildResults[`mas-${process.arch}`];
   }
 
   if (buildResultForThisPlatform) {

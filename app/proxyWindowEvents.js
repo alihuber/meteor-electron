@@ -1,5 +1,5 @@
-var _ = require('underscore');
-var { ipcMain: ipc } = require('electron');
+const _ = require('underscore');
+const { ipcMain: ipc } = require('electron');
 
 /**
  * Proxies `BrowserWindow` events to renderer processes as directed by those processes and in a way
@@ -21,12 +21,12 @@ var { ipcMain: ipc } = require('electron');
  *
  * @param {BrowserWindow} window - The window whose events to proxy.
  */
-var proxyWindowEvents = function(window) {
-  var eventsObserved = {};
+const proxyWindowEvents = function (window) {
+  let eventsObserved = {};
 
-  ipc.on('observe-window-event', function(event, arg) {
-    if ((event.sender === window.webContents) && !eventsObserved[arg]) {
-      eventsObserved[arg] = function() {
+  ipc.on('observe-window-event', function (event, arg) {
+    if (event.sender === window.webContents && !eventsObserved[arg]) {
+      eventsObserved[arg] = function () {
         window.webContents.send(arg);
       };
       window.on(arg, eventsObserved[arg]);
@@ -35,8 +35,8 @@ var proxyWindowEvents = function(window) {
 
   // Clear our listeners when the page starts (re)loading i.e. its listeners have been purged.
   // TODO(wearhere): I'm not sure this is the right event for reload but it seems to work.
-  window.webContents.on('did-start-loading', function() {
-    _.each(eventsObserved, function(listener, event) {
+  window.webContents.on('did-start-loading', function () {
+    _.each(eventsObserved, function (listener, event) {
       window.removeListener(event, listener);
     });
     eventsObserved = {};

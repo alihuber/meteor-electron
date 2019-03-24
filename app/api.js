@@ -8,8 +8,8 @@
  * In particular, do not save the following variables as properties of `ElectronImplementation`.
  * See https://github.com/atom/electron/issues/1753#issuecomment-104719851.
  */
-var _ = require('underscore');
-var { ipcRenderer: ipc, remote, shell } = require('electron');
+const _ = require('underscore');
+const { ipcRenderer: ipc, remote, shell } = require('electron');
 
 /**
  * Defines methods with which to extend the `Electron` module defined in `client.js`.
@@ -35,7 +35,7 @@ ElectronImplementation = {
    *
    * @return {Boolean} `true` if the browser window is in fullscreen mode, `false` otherwise.
    */
-  isFullScreen: function() {
+  isFullScreen() {
     return remote.getCurrentWindow().isFullScreen();
   },
 
@@ -56,7 +56,7 @@ ElectronImplementation = {
    * @param {Function} callback - A function to invoke when `event` is triggered. Takes no arguments
    *   and returns no value.
    */
-  onWindowEvent: function(event, callback) {
+  onWindowEvent(event, callback) {
     this.onEvent(event, callback);
     ipc.send('observe-window-event', event);
   },
@@ -68,16 +68,17 @@ ElectronImplementation = {
    * @param {Function} callback - A function to invoke when `event` is triggered. Takes no arguments
    *   and returns no value.
    */
-  onEvent: function(event, callback) {
-    var listeners = this._eventListeners[event];
+  onEvent(event, callback) {
+    let listeners = this._eventListeners[event];
     if (!listeners) {
-      listeners = this._eventListeners[event] = [];
-      ipc.on(event, function() {
+      listeners = [];
+      this._eventListeners[event] = [];
+      ipc.on(event, function () {
         _.invoke(listeners, 'call');
       });
     }
     listeners.push(callback);
   },
 
-  _eventListeners: {}
+  _eventListeners: {},
 };

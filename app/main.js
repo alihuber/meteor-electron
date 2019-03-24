@@ -1,7 +1,7 @@
-var { app, protocol } = require('electron');
-var childProcess = require("child_process");
-var path = require("path");
-var fs = require("fs");
+const { app, protocol } = require('electron');
+const childProcess = require('child_process');
+const path = require('path');
+const fs = require('fs');
 
 // var log = function(msg){
 //   fs.appendFile("C:\\Users\\Michael\\electron.log", msg + "\n", function(err){
@@ -11,97 +11,96 @@ var fs = require("fs");
 //   })
 // };
 
-var log = function(){};
+const log = function () {};
 
-var installShortcut = function(callback){
-  var updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
-  var child = childProcess.spawn(updateDotExe, ["--createShortcut", "mixmax.exe"], { detached: true });
-  child.on('close', function(code) {
+const installShortcut = function (callback) {
+  const updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
+  const child = childProcess.spawn(updateDotExe, ['--createShortcut'], { detached: true });
+  child.on('close', function () {
     callback();
   });
 };
 
-var handleStartupEvent = function() {
+const handleStartupEvent = function () {
   if (process.platform !== 'win32') {
     return false;
   }
 
-  var squirrelCommand = process.argv[1];
+  const squirrelCommand = process.argv[1];
   switch (squirrelCommand) {
-    case '--squirrel-install':
-      log("SQUIRREL INSTALL");
+  case '--squirrel-install':
+    log('SQUIRREL INSTALL');
+    break;
+  case '--squirrel-updated':
+    log('SQUIRREL UPDATED');
+    // Optionally do things such as:
+    //
+    // - Install desktop and start menu shortcuts
+    // - Add your .exe to the PATH
+    // - Write to the registry for things like file associations and
+    //   explorer context menus
 
-    case '--squirrel-updated':
-      log("SQUIRREL UPDATED");
-      // Optionally do things such as:
-      //
-      // - Install desktop and start menu shortcuts
-      // - Add your .exe to the PATH
-      // - Write to the registry for things like file associations and
-      //   explorer context menus
-
-      // Always quit when done
-      installShortcut(function(){
-        app.quit();
-      })
-
-      return true;
-    case '--squirrel-uninstall':
-      log("SQUIRREL UNINSTALL");
-
-      // Undo anything you did in the --squirrel-install and
-      // --squirrel-updated handlers
-
-      // Always quit when done
+    // Always quit when done
+    installShortcut(function () {
       app.quit();
+    });
 
-      return true;
-    case '--squirrel-obsolete':
-      log("SQUIRREL OBSOLETE");
-      // This is called on the outgoing version of your app before
-      // we update to the new version - it's the opposite of
-      // --squirrel-updated
-      app.quit();
-      return true;
+    return true;
+  case '--squirrel-uninstall':
+    log('SQUIRREL UNINSTALL');
+
+    // Undo anything you did in the --squirrel-install and
+    // --squirrel-updated handlers
+
+    // Always quit when done
+    app.quit();
+
+    return true;
+  case '--squirrel-obsolete':
+    log('SQUIRREL OBSOLETE');
+    // This is called on the outgoing version of your app before
+    // we update to the new version - it's the opposite of
+    // --squirrel-updated
+    app.quit();
+    return true;
+  default:
+    break;
   }
 };
 
-app.on("window-all-closed", function(){
-  if (process.platform !== "darwin"){
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') {
     app.quit();
   }
-})
+});
 
 if (handleStartupEvent()) {
   return;
 }
 
-var { BrowserWindow } = require('electron'); // Module to create native browser window.
-var autoUpdater = require('./autoUpdater');
-var path = require("path");
-var fs = require("fs");
-var createDefaultMenu = require('./menu.js');
-var proxyWindowEvents = require('./proxyWindowEvents');
+const { BrowserWindow } = require('electron'); // Module to create native browser window.
+const autoUpdater = require('./autoUpdater');
+const createDefaultMenu = require('./menu.js');
+const proxyWindowEvents = require('./proxyWindowEvents');
 
 require('electron-debug')({
-    showDevTools: false
+  showDevTools: false,
 });
 
-var electronSettings = JSON.parse(fs.readFileSync(
-  path.join(__dirname, "electronSettings.json"), "utf-8"));
+const electronSettings = JSON.parse(fs.readFileSync(path.join(__dirname, 'electronSettings.json'), 'utf-8'));
 
-var checkForUpdates;
+let checkForUpdates;
 if (electronSettings.updateFeedUrl) {
   autoUpdater.setFeedURL(electronSettings.updateFeedUrl + '?version=' + electronSettings.version);
   autoUpdater.checkForUpdates();
-  checkForUpdates = function() {
+  checkForUpdates = function () {
     autoUpdater.checkForUpdates(true /* userTriggered */);
   };
 }
 
 // register custom protocol for packaged apps that rewrite urls to the filesystem
 // otherwise use the URL specified in the settings file.
-var launchUrl;
+let launchUrl;
 if (electronSettings.autoPackage && electronSettings.bundleClient) {
   protocol.registerStandardSchemes(['meteor']);
   launchUrl = 'meteor://bundle/index.html';
@@ -112,7 +111,7 @@ if (electronSettings.autoPackage && electronSettings.bundleClient) {
   }
 }
 
-var windowOptions = {
+const windowOptions = {
   width: electronSettings.width || 800,
   height: electronSettings.height || 600,
   resizable: true,
@@ -127,16 +126,16 @@ var windowOptions = {
   webPreferences: {
     nodeIntegration: false,
     // See comments at the top of `preload.js`.
-    preload: path.join(__dirname, 'api.js')
-  }
+    preload: path.join(__dirname, 'api.js'),
+  },
 };
 
-if (electronSettings.resizable === false){
+if (electronSettings.resizable === false) {
   windowOptions.resizable = false;
 }
 
-if (electronSettings['titleBarStyle']) {
-  windowOptions['titleBarStyle'] = electronSettings['titleBarStyle'];
+if (electronSettings.titleBarStyle) {
+  windowOptions.titleBarStyle = electronSettings.titleBarStyle;
 }
 
 if (electronSettings.minWidth) {
@@ -155,14 +154,14 @@ if (electronSettings.maxHeight) {
   windowOptions.maxHeight = electronSettings.maxHeight;
 }
 
-if (electronSettings.frame === false){
+if (electronSettings.frame === false) {
   windowOptions.frame = false;
 }
 
 // Keep a global reference of the window object so that it won't be garbage collected
 // and the window closed.
-var mainWindow = null;
-var getMainWindow = function() {
+let mainWindow = null;
+const getMainWindow = function () {
   return mainWindow;
 };
 
@@ -170,7 +169,12 @@ var getMainWindow = function() {
 // window is available to be passed directly to `createDefaultMenu`.
 createDefaultMenu(app, getMainWindow, checkForUpdates);
 
-app.on("ready", function(){
+const hideInsteadofClose = function (e) {
+  mainWindow.hide();
+  e.preventDefault();
+};
+
+app.on('ready', function () {
   mainWindow = new BrowserWindow(windowOptions);
   proxyWindowEvents(mainWindow);
 
@@ -182,26 +186,26 @@ app.on("ready", function(){
 
   // rewrite webapp requests to filesystem for packaged apps
   if (electronSettings.autoPackage && electronSettings.bundleClient) {
-    protocol.registerFileProtocol('meteor', function(request, callback) {
-      callback(request.url.replace('meteor://bundle/', __dirname + '/web/').split('?')[0].split('#')[0]);
+    protocol.registerFileProtocol('meteor', function (request, callback) {
+      callback(
+        request.url
+          .replace('meteor://bundle/', `${__dirname}/web/`)
+          .split('?')[0]
+          .split('#')[0]
+      );
     });
   }
 
   mainWindow.loadURL(launchUrl);
 });
 
-var hideInsteadofClose = function(e) {
-  mainWindow.hide();
-  e.preventDefault();
-};
-
-app.on("before-quit", function(){
+app.on('before-quit', function () {
   // We need to remove our close event handler from the main window,
   // otherwise the app will not quit.
   mainWindow.removeListener('close', hideInsteadofClose);
 });
 
-app.on("activate", function(){
+app.on('activate', function () {
   // Show the main window when the customer clicks on the app icon.
   if (!mainWindow.isVisible()) mainWindow.show();
 });
