@@ -46,11 +46,14 @@ const electronSettings = Meteor.settings.electron || {};
 
 const IS_MAC = process.platform === 'darwin';
 
-function createBuildDirectories(build) {
+function createBuildDirectories(build, recreate) {
   // Use a predictable directory so that other scripts can locate the builds, also so that the builds
   // may be cached:
 
   const workingDir = path.join(projectRoot(), '.meteor-electron', build.platform + '-' + build.arch);
+  if (recreate) {
+    rimraf(workingDir);
+  }
   mkdirp(workingDir);
 
   // TODO consider seeding the binaryDir from package assets so package
@@ -200,10 +203,10 @@ function packageJSONHasChanged(packageJSON, appDir) {
 }
 
 function packagerSettingsHaveChanged(settings, workingDir) {
-  const settingsPath = path.join(workingDir, 'lastUsedPackagerSettings.json');
+  const settPath = path.join(workingDir, 'lastUsedPackagerSettings.json');
   let existingPackagerSettings;
   try {
-    existingPackagerSettings = Npm.require(settingsPath);
+    existingPackagerSettings = Npm.require(settPath);
   } catch (e) {
     // No existing settings.
   }
@@ -263,6 +266,7 @@ function appPath(appName, platform, arch, buildDir) {
 const createBinaries = function () {
   const results = {};
   let builds;
+  const recreate = electronSettings.recreate;
   if (electronSettings.builds) {
     builds = electronSettings.builds;
   } else {
@@ -286,7 +290,7 @@ const createBinaries = function () {
   builds.forEach(function (buildInfo) {
     let buildRequired = false;
 
-    const buildDirs = createBuildDirectories(buildInfo);
+    const buildDirs = createBuildDirectories(buildInfo, recreate);
 
     /* Write out Electron application files */
     const appVersion = electronSettings.version;
