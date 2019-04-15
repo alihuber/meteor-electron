@@ -212,7 +212,7 @@ function packagerSettingsHaveChanged(settings, workingDir) {
   }
 
   if (!existingPackagerSettings || !_.isEqual(settings, existingPackagerSettings)) {
-    writeFile(settingsPath, JSON.stringify(settings));
+    writeFile(settPath, JSON.stringify(settings));
     return true;
   } else {
     return false;
