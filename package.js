@@ -10,7 +10,7 @@ Package.describe({
 Npm.depends({
   'electron-packager': '13.1.1',
   'electron-rebuild': '1.8.4',
-  'meteor-build-client-only': 'git+https://github.com/alihuber/meteor-build-client#master',
+  'meteor-build-client-only': 'https://github.com/alihuber/meteor-build-client/tarball/9407343ad5221bcc3fe813eecf0dff4aeb77fd9b',
   'lucy-dirsum': '0.1.1',
   mkdirp: '0.5.1',
   ncp: '2.0.0',
