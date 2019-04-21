@@ -472,7 +472,7 @@ const createBinaries = function () {
       //  'version-string': { ProductName: 'my-app-name' },
       //  'app-version': '4.1.0' }
       exec(
-        `npx electron-packager ${sourcedir} ${appname} --platform=${platform} --arch=${arch} --out=${out} ${overwrite} --download.cache=${downloadCache}`
+        `npx electron-packager ${sourcedir} ${appname} --platform=${platform} --arch=${arch} --out=${out} ${overwrite} --download.cache=${downloadCache} --asar`
       );
       console.log('Build created for ', buildInfo.platform, buildInfo.arch, 'at', out);
     }
