@@ -40,7 +40,7 @@ Package.onUse(function (api) {
     'server'
   );
 
-  const assets = ['app/api.js', 'app/autoUpdater.js', 'app/main.js', 'app/menu.js', 'app/package.json', 'app/proxyWindowEvents.js'];
+  const assets = ['app/api.js', 'app/main.js', 'app/menu.js', 'app/package.json', 'app/proxyWindowEvents.js'];
 
   // Use Meteor 1.2+ API, but fall back to the pre-1.2 API if necessary
   if (api.addAssets) {
